@@ -36,9 +36,12 @@ Copy-Item $manifestPath $tmpManifest -Force
 
 gh release view $Tag --repo $Repo 2>$null | Out-Null
 if ($LASTEXITCODE -ne 0) {
-    $extra = if ($Prerelease) { @("--prerelease") } else { @() }
-    gh release create $Tag --repo $Repo --title "Contenu $Tag" @extra `
-        --notes "Mods et config distribués par WT Mod Launcher. Ne pas télécharger à la main : utilise le launcher."
+    $notes = "Mods et config distribués par WT Mod Launcher. Ne pas télécharger à la main : utilise le launcher."
+    $createArgs = @("release", "create", $Tag, "--repo", $Repo, "--target", "main", "--title", "Contenu $Tag", "--notes", $notes)
+    if ($Prerelease) { $createArgs += "--prerelease" }
+    & gh @createArgs
+    if ($LASTEXITCODE -ne 0) { throw "gh release create failed" }
 }
 gh release upload $Tag @Files $tmpManifest --repo $Repo --clobber
+if ($LASTEXITCODE -ne 0) { throw "gh release upload failed" }
 Write-Host "Published $Tag"
