@@ -1,0 +1,397 @@
+<Window x:Class="WTModLauncher.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:core="clr-namespace:WTModLauncher.Core"
+        xmlns:vm="clr-namespace:WTModLauncher.ViewModels"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
+        Title="WT Mod Launcher" Width="1180" Height="800" MinWidth="1000" MinHeight="680"
+        WindowStartupLocation="CenterScreen" WindowStyle="None" ResizeMode="CanResize"
+        Background="{StaticResource Bg0}" Foreground="{StaticResource Text}"
+        FontFamily="{StaticResource Body}" Icon="Assets/app.ico"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="64" ResizeBorderThickness="5" GlassFrameThickness="0" CornerRadius="0" />
+    </WindowChrome.WindowChrome>
+
+    <Grid>
+        <!-- ===== Backdrop ===== -->
+        <Rectangle Fill="{StaticResource GridBrush}" />
+        <Rectangle Fill="{StaticResource BackdropGlow}" />
+        <Viewbox Width="560" Height="560" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,20,-140,0"
+                 Opacity="0.07" IsHitTestVisible="False">
+            <Canvas Width="200" Height="200">
+                <Ellipse Width="180" Height="180" Canvas.Left="10" Canvas.Top="10" Stroke="{StaticResource Accent}" StrokeThickness="2" />
+                <Ellipse Width="110" Height="110" Canvas.Left="45" Canvas.Top="45" Stroke="{StaticResource Accent}" StrokeThickness="1.5" />
+                <Line X1="100" Y1="0" X2="100" Y2="80" Stroke="{StaticResource Accent}" StrokeThickness="2" />
+                <Line X1="100" Y1="120" X2="100" Y2="200" Stroke="{StaticResource Accent}" StrokeThickness="2" />
+                <Line X1="0" Y1="100" X2="80" Y2="100" Stroke="{StaticResource Accent}" StrokeThickness="2" />
+                <Line X1="120" Y1="100" X2="200" Y2="100" Stroke="{StaticResource Accent}" StrokeThickness="2" />
+                <Ellipse Width="6" Height="6" Canvas.Left="97" Canvas.Top="97" Fill="{StaticResource Accent}" />
+            </Canvas>
+        </Viewbox>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="64" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- ===== Top bar ===== -->
+            <Border Grid.Row="0" Background="#B30D1013" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Orientation="Horizontal" Margin="24,0,40,0" VerticalAlignment="Center">
+                        <Grid Width="30" Height="30">
+                            <Path Data="M 0,8 L 8,0 L 30,0 L 30,22 L 22,30 L 0,30 Z" Fill="{StaticResource AccentGradient}" />
+                            <TextBlock Text="&#xE7FC;" FontFamily="{StaticResource Icons}" FontSize="15" Foreground="{StaticResource Bg0}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                        <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="WT MOD LAUNCHER" FontFamily="{StaticResource Display}" FontWeight="Bold" FontSize="20" />
+                            <TextBlock Text="{Binding AppVersion}" FontSize="10" Foreground="{StaticResource TextDim}" Margin="0,-3,0,0" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Height="64">
+                        <RadioButton Style="{StaticResource NavTab}" GroupName="nav" Content="{core:T Nav.Mods}"
+                                     IsChecked="{Binding CurrentPage, Converter={StaticResource Eq}, ConverterParameter=mods}" />
+                        <RadioButton Style="{StaticResource NavTab}" GroupName="nav" Content="{core:T Nav.Settings}"
+                                     IsChecked="{Binding CurrentPage, Converter={StaticResource Eq}, ConverterParameter=settings}" />
+                        <RadioButton Style="{StaticResource NavTab}" GroupName="nav" Content="{core:T Nav.Log}"
+                                     IsChecked="{Binding CurrentPage, Converter={StaticResource Eq}, ConverterParameter=log}" />
+                        <RadioButton Style="{StaticResource NavTab}" GroupName="nav" Content="{core:T Nav.About}"
+                                     IsChecked="{Binding CurrentPage, Converter={StaticResource Eq}, ConverterParameter=about}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
+                        <Border BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="3" Padding="2"
+                                Margin="0,16,16,0" VerticalAlignment="Top">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Style="{StaticResource LangToggle}" GroupName="lang" Content="FR"
+                                             IsChecked="{Binding Language, Converter={StaticResource Eq}, ConverterParameter=fr}" />
+                                <RadioButton Style="{StaticResource LangToggle}" GroupName="lang" Content="EN"
+                                             IsChecked="{Binding Language, Converter={StaticResource Eq}, ConverterParameter=en}" />
+                            </StackPanel>
+                        </Border>
+                        <Button Style="{StaticResource CaptionButton}" Content="&#xE921;" Click="Minimize_Click" />
+                        <Button Style="{StaticResource CloseButton}" Content="&#xE8BB;" Click="Close_Click" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ===== MODS page ===== -->
+            <Grid Grid.Row="1" Margin="40,26,40,18"
+                  Visibility="{Binding CurrentPage, Converter={StaticResource EqVis}, ConverterParameter=mods}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <StackPanel>
+                    <TextBlock Style="{StaticResource H1}" Text="{core:T Hero.Title}" />
+                    <Rectangle Width="64" Height="3" Fill="{StaticResource Accent}" HorizontalAlignment="Left" Margin="0,4,0,10" />
+                    <TextBlock Style="{StaticResource BodyText}" FontSize="14" MaxWidth="720" HorizontalAlignment="Left"
+                               Text="{core:T Hero.Subtitle}" />
+                </StackPanel>
+
+                <ScrollViewer Grid.Row="1" Margin="0,22,0,0" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding Items}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="3" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:ModItemViewModel}">
+                                <Border x:Name="card" Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}"
+                                        BorderThickness="1" Margin="0,0,16,16">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <!-- status strip -->
+                                        <Rectangle Grid.Row="0" Height="3" VerticalAlignment="Top"
+                                                   Fill="{Binding StatusKey, Converter={StaticResource StatusBrush}}" />
+
+                                        <StackPanel Grid.Row="0" Margin="20,22,20,0">
+                                            <Grid>
+                                                <Border Width="48" Height="48" Background="#1FF2A531" BorderBrush="#66F2A531" BorderThickness="1"
+                                                        HorizontalAlignment="Left">
+                                                    <TextBlock Text="{Binding Icon}" FontFamily="{StaticResource Icons}" FontSize="22"
+                                                               Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                </Border>
+                                                <Border HorizontalAlignment="Right" VerticalAlignment="Top" Padding="8,3" CornerRadius="2"
+                                                        Background="{Binding StatusKey, Converter={StaticResource StatusBrush}}">
+                                                    <TextBlock Text="{Binding StatusText}" FontFamily="{StaticResource Display}" FontWeight="Bold"
+                                                               FontSize="12" Foreground="#0D1013" />
+                                                </Border>
+                                            </Grid>
+                                            <TextBlock Style="{StaticResource H2}" Text="{Binding Title}" Margin="0,16,0,0" TextWrapping="Wrap" />
+                                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                <TextBlock Text="{Binding Author}" FontSize="12" Foreground="{StaticResource TextDim}" />
+                                                <TextBlock Text="  ·  " FontSize="12" Foreground="{StaticResource TextDim}"
+                                                           Visibility="{Binding VersionText, Converter={StaticResource Vis}}" />
+                                                <TextBlock Text="{Binding VersionText}" FontSize="12" Foreground="{StaticResource TextDim}" />
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Row="1" Margin="20,12,20,0">
+                                            <TextBlock Style="{StaticResource BodyText}" Text="{Binding Description}" />
+                                            <Border BorderBrush="{StaticResource Accent}" BorderThickness="2,0,0,0" Background="#0FF2A531"
+                                                    Padding="10,8" Margin="0,12,0,0"
+                                                    Visibility="{Binding HowTo, Converter={StaticResource Vis}}">
+                                                <TextBlock Style="{StaticResource BodyText}" FontSize="12" LineHeight="17" Text="{Binding HowTo}" />
+                                            </Border>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Row="2" Margin="20,14,20,20">
+                                            <WrapPanel Margin="0,0,0,6">
+                                                <Button Style="{StaticResource GhostButton}" Margin="0,0,6,6"
+                                                        Command="{Binding Owner.LaunchToolCommand}" CommandParameter="{Binding}"
+                                                        Visibility="{Binding CanLaunch, Converter={StaticResource Vis}}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="&#xE768;" FontFamily="{StaticResource Icons}" FontSize="11" Margin="0,1,6,0" VerticalAlignment="Center" />
+                                                        <TextBlock Text="{core:T Action.LaunchFcs}" />
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Style="{StaticResource GhostButton}" Margin="0,0,6,6"
+                                                        Command="{Binding Owner.OpenUserSightsCommand}"
+                                                        Content="{core:T Action.OpenSights}"
+                                                        Visibility="{Binding IsTool, Converter={StaticResource Vis}}" />
+                                                <Button Style="{StaticResource GhostButton}" Margin="0,0,6,6"
+                                                        Command="{Binding Owner.OpenPresetFolderCommand}" CommandParameter="{Binding}"
+                                                        Content="{core:T Action.OpenPreset}"
+                                                        Visibility="{Binding IsControls, Converter={StaticResource Vis}}"
+                                                        IsEnabled="{Binding IsPresent}" />
+                                                <Button Style="{StaticResource GhostButton}" Margin="0,0,6,6"
+                                                        Command="{Binding Owner.CopyPresetPathCommand}" CommandParameter="{Binding}"
+                                                        Content="{core:T Action.CopyPath}"
+                                                        Visibility="{Binding IsControls, Converter={StaticResource Vis}}"
+                                                        IsEnabled="{Binding IsPresent}" />
+                                            </WrapPanel>
+
+                                            <CheckBox Style="{StaticResource CardCheck}" Content="{core:T Card.Install}"
+                                                      IsChecked="{Binding IsSelected}" IsEnabled="{Binding NeedsAction}" />
+
+                                            <DockPanel Margin="0,10,0,0" LastChildFill="False">
+                                                <Button DockPanel.Dock="Left" Style="{StaticResource LinkButton}"
+                                                        Command="{Binding Owner.OpenHomepageCommand}" CommandParameter="{Binding}"
+                                                        Visibility="{Binding HasHomepage, Converter={StaticResource Vis}}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="&#xE8A7;" FontFamily="{StaticResource Icons}" FontSize="11" Margin="0,2,5,0" />
+                                                        <TextBlock Text="{core:T Card.Details}" />
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}"
+                                                        Command="{Binding Owner.UninstallCommand}" CommandParameter="{Binding}"
+                                                        Visibility="{Binding IsPresent, Converter={StaticResource Vis}}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="&#xE74D;" FontFamily="{StaticResource Icons}" FontSize="11" Margin="0,2,5,0" />
+                                                        <TextBlock Text="{core:T Card.Uninstall}" />
+                                                    </StackPanel>
+                                                </Button>
+                                            </DockPanel>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                                <DataTemplate.Triggers>
+                                    <Trigger SourceName="card" Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="card" Property="BorderBrush" Value="#66F2A531" />
+                                        <Setter TargetName="card" Property="Background" Value="{StaticResource PanelHover}" />
+                                    </Trigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+
+            <!-- ===== SETTINGS page ===== -->
+            <ScrollViewer Grid.Row="1" Margin="40,26,40,18" VerticalScrollBarVisibility="Auto"
+                          Visibility="{Binding CurrentPage, Converter={StaticResource EqVis}, ConverterParameter=settings}">
+                <StackPanel MaxWidth="820" HorizontalAlignment="Left">
+                    <TextBlock Style="{StaticResource H1}" Text="{core:T Nav.Settings}" Margin="0,0,0,18" />
+
+                    <Border Style="{StaticResource PanelBorder}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource Label}" Text="{core:T Settings.GamePath}" />
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Margin="8,0,0,0"
+                                        Content="{core:T Settings.Detect}" Command="{Binding DetectGameCommand}" />
+                                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Margin="8,0,0,0"
+                                        Content="{core:T Settings.Browse}" Command="{Binding BrowseGameCommand}" />
+                                <TextBox Text="{Binding GamePath, Mode=OneWay}" IsReadOnly="True" />
+                            </DockPanel>
+                            <TextBlock Style="{StaticResource BodyText}" Margin="0,8,0,0" Text="{Binding GameStatusText}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource PanelBorder}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource Label}" Text="{core:T Settings.UserSights}" />
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Margin="8,0,0,0"
+                                        Content="{core:T Action.OpenPreset}" Command="{Binding OpenUserSightsCommand}" />
+                                <ComboBox ItemsSource="{Binding SightsProfiles}" SelectedItem="{Binding SelectedSightsProfile}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock>
+                                                <Run Text="{Binding UserId, Mode=OneWay}" FontWeight="SemiBold" />
+                                                <Run Text="  —  " Foreground="{StaticResource TextDim}" />
+                                                <Run Text="{Binding UserSightsPath, Mode=OneWay}" Foreground="{StaticResource TextDim}" />
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource PanelBorder}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource Label}" Text="{core:T Settings.Language}" />
+                            <Border BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="3" Padding="2" HorizontalAlignment="Left">
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton Style="{StaticResource LangToggle}" GroupName="lang2" Content="Français"
+                                                 IsChecked="{Binding Language, Converter={StaticResource Eq}, ConverterParameter=fr}" />
+                                    <RadioButton Style="{StaticResource LangToggle}" GroupName="lang2" Content="English"
+                                                 IsChecked="{Binding Language, Converter={StaticResource Eq}, ConverterParameter=en}" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource PanelBorder}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource Label}" Text="{core:T Settings.Repair}" />
+                            <TextBlock Style="{StaticResource BodyText}" Text="{core:T Settings.RepairHint}" Margin="0,0,0,12" />
+                            <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left"
+                                    Content="{core:T Settings.RepairButton}" Command="{Binding RepairCommand}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource PanelBorder}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource Label}" Text="{core:T Settings.Data}" />
+                            <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left"
+                                    Content="{core:T Settings.OpenData}" Command="{Binding OpenDataFolderCommand}" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- ===== LOG page ===== -->
+            <Grid Grid.Row="1" Margin="40,26,40,18"
+                  Visibility="{Binding CurrentPage, Converter={StaticResource EqVis}, ConverterParameter=log}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <DockPanel Margin="0,0,0,14">
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" VerticalAlignment="Center"
+                            Content="{core:T Log.Copy}" Command="{Binding CopyLogCommand}" />
+                    <TextBlock Style="{StaticResource H1}" Text="{core:T Log.Title}" />
+                </DockPanel>
+                <Border Grid.Row="1" Style="{StaticResource PanelBorder}" Margin="0" Padding="14">
+                    <ScrollViewer x:Name="LogScroll" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding LogLines}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" FontFamily="Consolas" FontSize="12.5" Foreground="{StaticResource TextDim}"
+                                               TextWrapping="Wrap" Margin="0,1" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+
+            <!-- ===== ABOUT page ===== -->
+            <ScrollViewer Grid.Row="1" Margin="40,26,40,18" VerticalScrollBarVisibility="Auto"
+                          Visibility="{Binding CurrentPage, Converter={StaticResource EqVis}, ConverterParameter=about}">
+                <StackPanel MaxWidth="820" HorizontalAlignment="Left">
+                    <TextBlock Style="{StaticResource H1}" Text="{core:T About.Title}" Margin="0,0,0,18" />
+                    <Border Style="{StaticResource PanelBorder}">
+                        <TextBlock Style="{StaticResource BodyText}" FontSize="14" Text="{core:T About.Text}" />
+                    </Border>
+                    <Border Style="{StaticResource PanelBorder}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource Label}" Text="{core:T About.Credits}" />
+                            <Button Style="{StaticResource LinkButton}" FontSize="13" Margin="0,2"
+                                    Command="{Binding OpenUrlCommand}" CommandParameter="https://live.warthunder.com/post/1089792/en/"
+                                    Content="RCSM — FireXsoldier · live.warthunder.com" />
+                            <Button Style="{StaticResource LinkButton}" FontSize="13" Margin="0,2"
+                                    Command="{Binding OpenUrlCommand}" CommandParameter="https://github.com/tsvl/WT-FCSGenerator"
+                                    Content="WT-FCSGenerator — tsvl &amp; Assin127 · github.com/tsvl/WT-FCSGenerator" />
+                            <Button Style="{StaticResource LinkButton}" FontSize="13" Margin="0,2"
+                                    Command="{Binding OpenUrlCommand}" CommandParameter="https://github.com/Robocnop/WarThunderModLauncher"
+                                    Content="WT Mod Launcher &amp; Config Robo — Robocnop · github.com/Robocnop/WarThunderModLauncher" />
+                            <TextBlock Style="{StaticResource BodyText}" FontSize="11" Margin="0,10,0,0"
+                                       Text="Rajdhani font — Indian Type Foundry, SIL Open Font License 1.1" />
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Style="{StaticResource BodyText}" FontSize="12" Text="{core:T About.Disclaimer}" />
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- ===== Bottom action bar ===== -->
+            <Border Grid.Row="2" Background="#E60D1013" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="40,16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel VerticalAlignment="Center" Margin="0,0,30,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE73E;" FontFamily="{StaticResource Icons}" FontSize="12" Foreground="#4CAF6A"
+                                       Margin="0,2,8,0" Visibility="{Binding IsGameFound, Converter={StaticResource Vis}}" />
+                            <TextBlock Text="&#xE7BA;" FontFamily="{StaticResource Icons}" FontSize="12" Foreground="#E5533D"
+                                       Margin="0,2,8,0" Visibility="{Binding IsGameFound, Converter={StaticResource Vis}, ConverterParameter=invert}" />
+                            <TextBlock Text="{Binding GameStatusText}" FontSize="12.5" Foreground="{StaticResource TextDim}"
+                                       TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,10,0,0" Visibility="{Binding IsBusy, Converter={StaticResource Vis}}">
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="{core:T Action.Cancel}"
+                                        Command="{Binding CancelCommand}" />
+                                <TextBlock DockPanel.Dock="Right" Text="{Binding ProgressDetail}" FontSize="12"
+                                           Foreground="{StaticResource TextDim}" Margin="0,0,16,0" />
+                                <TextBlock Text="{Binding ProgressMessage}" FontFamily="{StaticResource Display}" FontWeight="SemiBold"
+                                           FontSize="14" TextTrimming="CharacterEllipsis" />
+                            </DockPanel>
+                            <ProgressBar Margin="0,6,0,0" Maximum="1" Value="{Binding Progress}"
+                                         IsIndeterminate="{Binding ProgressIndeterminate}" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <Button Grid.Column="1" Style="{StaticResource GhostButton}" Height="58" Padding="22,0" Margin="0,0,14,0"
+                            FontSize="18" Command="{Binding PlayGameCommand}"
+                            Visibility="{Binding IsGameFound, Converter={StaticResource Vis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE768;" FontFamily="{StaticResource Icons}" FontSize="14" Margin="0,2,10,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{core:T Action.Play}" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Grid.Column="2" Style="{StaticResource PrimaryButton}"
+                            Content="{Binding PrimaryButtonText}" Command="{Binding InstallSelectedCommand}" />
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

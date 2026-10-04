@@ -1,0 +1,42 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Test
+        run: dotnet test WTModLauncher.slnx -c Release
+
+      - name: Publish single-file exe
+        run: dotnet publish src/WTModLauncher -c Release -o publish
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WTModLauncher
+          path: publish/WTModLauncher.exe
+
+      - name: Attach to GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          gh release view $tag 2>$null
+          if ($LASTEXITCODE -ne 0) { gh release create $tag --title "WT Mod Launcher $tag" --generate-notes }
+          gh release upload $tag publish/WTModLauncher.exe --clobber

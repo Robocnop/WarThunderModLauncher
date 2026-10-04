@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "contentVersion": "2026.10",
+  "items": [
+    {
+      "id": "rcsm",
+      "type": "soundmod",
+      "version": "2026-09-07",
+      "name": { "fr": "RCSM — Sons réalistes", "en": "RCSM — Realistic Sounds" },
+      "description": {
+        "fr": "Refonte complète des sons des chars et des avions : moteurs, armes, explosions, ambiances. Installé dans sound\\mod, activé automatiquement.",
+        "en": "Full overhaul of tank and aircraft sounds: engines, weapons, explosions, ambience. Installed into sound\\mod and enabled automatically."
+      },
+      "author": "FireXsoldier",
+      "homepage": "https://live.warthunder.com/post/1089792/en/",
+      "icon": "",
+      "url": "https://github.com/Robocnop/WarThunderModLauncher/releases/download/content-2026.10/RCSM_Build_September_7_2026.zip",
+      "fileName": "RCSM_Build_September_7_2026.zip",
+      "sha256": "1de0151a9381a427d7c8d1d90bf4444fcfaa5616d6734a9f9abb14b99cbabc19",
+      "size": 579531569
+    },
+    {
+      "id": "fcs",
+      "type": "github-tool",
+      "version": "",
+      "name": { "fr": "FCS — Viseurs balistiques", "en": "FCS — Ballistic Sights" },
+      "description": {
+        "fr": "WT-FCSGenerator génère des viseurs de chars avec les vraies trajectoires, la pénétration et un télémètre, pour tous les véhicules. Toujours la dernière version officielle.",
+        "en": "WT-FCSGenerator builds tank sights with real shell trajectories, penetration and rangefinder marks for every vehicle. Always the latest official build."
+      },
+      "author": "tsvl & Assin127",
+      "homepage": "https://github.com/tsvl/WT-FCSGenerator",
+      "icon": "",
+      "repo": "tsvl/WT-FCSGenerator",
+      "assetPattern": "win-x64.zip",
+      "exe": "FCS.exe"
+    },
+    {
+      "id": "robo-config",
+      "type": "controls",
+      "version": "2026-10",
+      "name": { "fr": "Config Robo — Contrôles", "en": "Robo's Config — Controls" },
+      "description": {
+        "fr": "Le preset de contrôles de Robo (octobre 2026), réglé pour aller avec les viseurs FCS : molette sur la distance de visée à 50 %.",
+        "en": "Robo's controls preset (October 2026), tuned to match FCS sights: mouse wheel on sight distance at 50%."
+      },
+      "author": "Robocnop",
+      "homepage": "https://github.com/Robocnop/WarThunderModLauncher",
+      "icon": "",
+      "url": "https://github.com/Robocnop/WarThunderModLauncher/releases/download/content-2026.10/ConfigRobo2026Octobre.blk",
+      "fileName": "ConfigRobo2026Octobre.blk",
+      "sha256": "466b62511a2ab1c7e41fc6c0b5c68afc4c5a29cc9a817c84315ace23388bd0d7",
+      "size": 29105
+    }
+  ]
+}

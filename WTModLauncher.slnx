@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/WTModLauncher/WTModLauncher.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/WTModLauncher.Tests/WTModLauncher.Tests.csproj" />
+  </Folder>
+</Solution>
