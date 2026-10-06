@@ -71,8 +71,9 @@ jobs:
           gh release view $tag 2>$null
           if ($LASTEXITCODE -ne 0) {
             # Pre-1.0 and suffixed tags (v1.2.0-beta.1) ship as pre-releases.
-            $pre = if ($tag -like "v0.*" -or $tag.Contains("-")) { @("--prerelease") } else { @() }
-            gh release create $tag --title "WT Mod Launcher $tag" --generate-notes @pre
+            $create = @("release", "create", $tag, "--title", "WT Mod Launcher $tag", "--generate-notes")
+            if ($tag -like "v0.*" -or $tag.Contains("-")) { $create += "--prerelease" }
+            gh @create
             if ($LASTEXITCODE -ne 0) { throw "gh release create failed" }
           }
           gh release upload $tag publish/WTModLauncher.exe "publish/WTModLauncher-Setup-$env:APP_VERSION.exe" publish/SHA256SUMS.txt --clobber
