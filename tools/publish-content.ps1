@@ -64,7 +64,8 @@ if ($LASTEXITCODE -ne 0) {
     & gh @createArgs
     if ($LASTEXITCODE -ne 0) { throw "gh release create failed" }
 }
-$upload = if ($ManifestOnly) { @($tmpManifest) } else { @($Files) + $tmpManifest }
+$upload = @($tmpManifest)
+if (-not $ManifestOnly) { $upload = @($Files) + $upload }
 gh release upload $Tag @upload --repo $Repo --clobber
 if ($LASTEXITCODE -ne 0) { throw "gh release upload failed" }
 Write-Host "Published $Tag"
