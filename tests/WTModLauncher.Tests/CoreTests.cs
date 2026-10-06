@@ -73,6 +73,11 @@ public class GameLocatorTests
     }
 }
 
+/// <summary>Tests that point the static AppPaths.Root at a temp dir must not run in parallel.</summary>
+[CollectionDefinition("AppPaths", DisableParallelization = true)]
+public class AppPathsCollection;
+
+[Collection("AppPaths")]
 public class SoundModInstallerTests
 {
     [Fact]
@@ -162,6 +167,8 @@ public class ManifestTests
             Assert.StartsWith("https://github.com/Robocnop/WarThunderModLauncher/releases/download/", i.Url);
             Assert.Equal(64, i.Sha256!.Length);
         });
+        // The sound mod carries the bank fingerprint used to recognise a copy installed by hand.
+        Assert.Equal(27, m.Items.Single(i => i.Id == "rcsm").Files!.Count);
     }
 }
 

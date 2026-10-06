@@ -37,6 +37,7 @@
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="64" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
@@ -89,8 +90,28 @@
                 </Grid>
             </Border>
 
+            <!-- ===== Launcher update banner ===== -->
+            <Border Grid.Row="1" Background="#26F2A531" BorderBrush="#66F2A531" BorderThickness="0,0,0,1" Padding="40,10"
+                    Visibility="{Binding HasUpdate, Converter={StaticResource Vis}}">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Margin="10,0,0,0"
+                            Command="{Binding UpdateNowCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE896;" FontFamily="{StaticResource Icons}" FontSize="11" Margin="0,1,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{core:T Update.Install}" />
+                        </StackPanel>
+                    </Button>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" VerticalAlignment="Center"
+                            Content="{core:T Update.Notes}" Command="{Binding OpenReleaseNotesCommand}" />
+                    <TextBlock Text="&#xE946;" FontFamily="{StaticResource Icons}" FontSize="14" Foreground="{StaticResource Accent}"
+                               VerticalAlignment="Center" Margin="0,1,10,0" />
+                    <TextBlock Text="{Binding UpdateText}" FontFamily="{StaticResource Display}" FontWeight="SemiBold" FontSize="15"
+                               VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
             <!-- ===== MODS page ===== -->
-            <Grid Grid.Row="1" Margin="40,26,40,18"
+            <Grid Grid.Row="2" Margin="40,26,40,18"
                   Visibility="{Binding CurrentPage, Converter={StaticResource EqVis}, ConverterParameter=mods}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -219,7 +240,7 @@
             </Grid>
 
             <!-- ===== SETTINGS page ===== -->
-            <ScrollViewer Grid.Row="1" Margin="40,26,40,18" VerticalScrollBarVisibility="Auto"
+            <ScrollViewer Grid.Row="2" Margin="40,26,40,18" VerticalScrollBarVisibility="Auto"
                           Visibility="{Binding CurrentPage, Converter={StaticResource EqVis}, ConverterParameter=settings}">
                 <StackPanel MaxWidth="820" HorizontalAlignment="Left">
                     <TextBlock Style="{StaticResource H1}" Text="{core:T Nav.Settings}" Margin="0,0,0,18" />
@@ -284,6 +305,24 @@
 
                     <Border Style="{StaticResource PanelBorder}">
                         <StackPanel>
+                            <TextBlock Style="{StaticResource Label}" Text="{core:T Settings.Updates}" />
+                            <TextBlock Style="{StaticResource BodyText}" Text="{Binding InstallKindText}" />
+                            <TextBlock Style="{StaticResource BodyText}" Text="{Binding UpdateStatusText}" Margin="0,2,0,0"
+                                       Visibility="{Binding UpdateStatusText, Converter={StaticResource Vis}}" />
+                            <CheckBox Style="{StaticResource CardCheck}" Margin="0,12,0,12" HorizontalAlignment="Left"
+                                      Content="{core:T Settings.Prereleases}" IsChecked="{Binding IncludePrereleases}" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource GhostButton}" Content="{core:T Settings.CheckUpdates}"
+                                        Command="{Binding CheckUpdatesCommand}" />
+                                <Button Style="{StaticResource GhostButton}" Margin="8,0,0,0" Command="{Binding UpdateNowCommand}"
+                                        Content="{core:T Update.Install}"
+                                        Visibility="{Binding HasUpdate, Converter={StaticResource Vis}}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource PanelBorder}">
+                        <StackPanel>
                             <TextBlock Style="{StaticResource Label}" Text="{core:T Settings.Data}" />
                             <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left"
                                     Content="{core:T Settings.OpenData}" Command="{Binding OpenDataFolderCommand}" />
@@ -293,7 +332,7 @@
             </ScrollViewer>
 
             <!-- ===== LOG page ===== -->
-            <Grid Grid.Row="1" Margin="40,26,40,18"
+            <Grid Grid.Row="2" Margin="40,26,40,18"
                   Visibility="{Binding CurrentPage, Converter={StaticResource EqVis}, ConverterParameter=log}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -319,7 +358,7 @@
             </Grid>
 
             <!-- ===== ABOUT page ===== -->
-            <ScrollViewer Grid.Row="1" Margin="40,26,40,18" VerticalScrollBarVisibility="Auto"
+            <ScrollViewer Grid.Row="2" Margin="40,26,40,18" VerticalScrollBarVisibility="Auto"
                           Visibility="{Binding CurrentPage, Converter={StaticResource EqVis}, ConverterParameter=about}">
                 <StackPanel MaxWidth="820" HorizontalAlignment="Left">
                     <TextBlock Style="{StaticResource H1}" Text="{core:T About.Title}" Margin="0,0,0,18" />
@@ -347,7 +386,7 @@
             </ScrollViewer>
 
             <!-- ===== Bottom action bar ===== -->
-            <Border Grid.Row="2" Background="#E60D1013" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="40,16">
+            <Border Grid.Row="3" Background="#E60D1013" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="40,16">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />

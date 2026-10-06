@@ -24,7 +24,14 @@ public sealed partial class ModItemViewModel : ObservableObject
 
     public bool IsTool => Installer is GitHubToolInstaller;
     public bool IsControls => Installer is ControlsPresetInstaller;
-    public string? HowTo => IsTool ? Loc.Get("Fcs.HowTo") : IsControls ? Loc.Get("Preset.HowTo") : null;
+    public string? HowTo => IsTool ? Loc.Get("Fcs.HowTo")
+        : IsControls ? Loc.Get(IsApplied ? "Preset.Applied" : "Preset.HowTo")
+        : null;
+
+    /// <summary>Controls preset only: its bindings are the active controls of a War Thunder profile.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HowTo))]
+    private bool _isApplied;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatusText), nameof(NeedsAction), nameof(IsPresent), nameof(CanLaunch), nameof(StatusKey))]

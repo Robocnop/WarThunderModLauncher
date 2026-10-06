@@ -21,6 +21,10 @@ public sealed class InstalledItem
     /// <summary>Paths relative to the install root (game dir, tool dir...), forward slashes.</summary>
     public List<string> Files { get; set; } = [];
     public DateTime InstalledAt { get; set; } = DateTime.UtcNow;
+    /// <summary>Found on disk rather than installed by the launcher.</summary>
+    public bool Adopted { get; set; }
+    /// <summary>Install root when it is not the default one (tool adopted from another folder).</summary>
+    public string? Location { get; set; }
 }
 
 public sealed class LauncherState
@@ -28,7 +32,11 @@ public sealed class LauncherState
     public string? GamePath { get; set; }
     public string? Language { get; set; }
     public string? SightsProfileId { get; set; }
+    /// <summary>Null = follow the channel of the running build (pre-release builds get pre-release updates).</summary>
+    public bool? IncludePrereleases { get; set; }
     public Dictionary<string, InstalledItem> Items { get; set; } = [];
+    /// <summary>Copies the player chose to forget: never adopted again.</summary>
+    public List<string> IgnoredPaths { get; set; } = [];
 }
 
 public static class StateStore

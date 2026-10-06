@@ -28,6 +28,8 @@ WT Mod Launcher lets players pick the mods they want with checkboxes and takes c
 ### Features
 
 - 🎯 Automatic War Thunder detection (Steam libraries, Gaijin launcher, common paths)
+- 🔎 **Detects mods you already have**: RCSM banks in `sound\mod`, an FCS folder you unzipped yourself, or Robo's controls already imported in your profile — no need to reinstall
+- ⬆️ **Self-updating**: a banner offers each new launcher version; one click downloads it, checks its SHA-256 and restarts
 - 🔒 SHA-256 verification and resumable downloads
 - 🛠️ **Check & repair** — re-enables the sound mod after a game update resets `config.blk`
 - ♻️ Every change is reversible from the launcher
@@ -36,18 +38,22 @@ WT Mod Launcher lets players pick the mods they want with checkboxes and takes c
 
 ## Download & install
 
-1. Go to the [**Releases**](https://github.com/Robocnop/WarThunderModLauncher/releases) page and download **`WTModLauncher.exe`** from the latest `v*` release.
-2. Run it — no installer or runtime required (self-contained, single file).
+1. Go to the [**Releases**](https://github.com/Robocnop/WarThunderModLauncher/releases) page and download from the latest `v*` release:
+   - **`WTModLauncher-Setup-x.y.z.exe`** (recommended) — installs for your user only, no admin rights: Start menu entry, optional desktop shortcut, uninstall from *Settings → Apps*.
+   - or **`WTModLauncher.exe`** — portable single file, runs from anywhere.
    > Windows SmartScreen may show *Unknown publisher* because the exe is not code-signed yet: click **More info → Run anyway**.
-3. Tick the mods you want and press **INSTALL**. Close War Thunder before installing the sound mod.
+2. Tick the mods you want and press **INSTALL**. Close War Thunder before installing the sound mod.
+3. Later versions install themselves: click **UPDATE NOW** on the banner when one is out (*Settings → Launcher updates* to check manually or opt in to pre-releases).
 
-> **Note:** current builds are **pre-releases**. A Windows installer and a self-updater are planned — see the [roadmap](ROADMAP.md).
+Uninstalling the launcher leaves your mods in place and keeps its data in `%LOCALAPPDATA%\WTModLauncher`; remove mods from the launcher first if you want them gone.
+
+> **Note:** current builds are **pre-releases** (`v0.x`).
 
 ### Releases
 
 | Release | Contents |
 |---|---|
-| [`v*`](https://github.com/Robocnop/WarThunderModLauncher/releases) | The launcher (`WTModLauncher.exe`), built and published by CI. |
+| [`v*`](https://github.com/Robocnop/WarThunderModLauncher/releases) | The launcher — installer (`WTModLauncher-Setup-x.y.z.exe`), portable exe (`WTModLauncher.exe`) and `SHA256SUMS.txt` — built and published by CI. |
 | [`content-*`](https://github.com/Robocnop/WarThunderModLauncher/releases/tag/content-2026.10) | Mod files + `manifest.json` downloaded by the launcher. You don't need to download these manually. |
 
 ## Requirements
@@ -67,40 +73,45 @@ cd WarThunderModLauncher
 dotnet test WTModLauncher.slnx                              # unit tests
 dotnet run --project src/WTModLauncher                      # run in debug
 dotnet publish src/WTModLauncher -c Release -o publish      # single-file exe in ./publish
+iscc installer\WTModLauncher.iss /DAppVersion=0.2.0          # installer in ./publish (Inno Setup 6)
 ```
 
 ### Project layout
 
 ```
 src/WTModLauncher/
-├─ Core/                  game detection, BLK editor, downloader, installers, catalog, localization
+├─ Core/                  game detection, BLK editor, downloader, installers, detection of existing mods,
+│                         self-updater, catalog, localization
 ├─ ViewModels/            MVVM (CommunityToolkit.Mvvm)
 ├─ Themes/WarThunder.xaml colors, fonts and control styles
 ├─ default-manifest.json  built-in catalog (fallback when offline)
+installer/WTModLauncher.iss Inno Setup script (per-user install)
 tests/WTModLauncher.Tests/ xUnit tests
 tools/publish-content.ps1  publishes a content-* release
 ```
 
 ## Publishing
 
-**App release** — push a tag; CI tests, builds and attaches the exe:
+**App release** — push a tag; CI tests, builds and attaches the installer, the portable exe and `SHA256SUMS.txt`. The tag sets the version (`v0.3.0-beta.1` works too); `v0.x` and suffixed tags are published as pre-releases:
 
 ```powershell
 git tag v0.2.0
 git push origin v0.2.0
 ```
 
-**Content release** — update `src/WTModLauncher/default-manifest.json` (version, url, `sha256`, `size`), then:
+Running launchers see the new version at their next start.
+
+**Content release** — update `src/WTModLauncher/default-manifest.json` (version, url, `sha256`, `size`, and for a sound mod the `files` bank list the script prints if it is out of date), then:
 
 ```powershell
 ./tools/publish-content.ps1 -Tag content-2026.11 -Prerelease -Files <mod.zip>, <preset.blk>
 ```
 
-The script refuses to publish if a file does not match the manifest. Launchers pick up the newest `content-*` release automatically.
+The script refuses to publish if a file does not match the manifest. Add `-ManifestOnly` to re-upload only `manifest.json`. Launchers pick up the newest `content-*` release automatically.
 
 ## Roadmap
 
-See [ROADMAP.md](ROADMAP.md) — next up: Inno Setup installer, detection of mods installed outside the launcher, and a GitHub-based self-updater.
+See [ROADMAP.md](ROADMAP.md).
 
 ## Credits
 

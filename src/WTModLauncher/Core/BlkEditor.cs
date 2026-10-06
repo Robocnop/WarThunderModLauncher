@@ -59,16 +59,35 @@ public static class BlkEditor
     private static Regex KeyRegex(string key) =>
         new($@"(?m)^[ \t]*{Regex.Escape(key)}:b=(?<v>[A-Za-z]+)");
 
+    /// <summary>Body of the block at <paramref name="path"/> (e.g. "content", "controls"), or null if absent.</summary>
+    public static string? GetBlockBody(string text, params string[] path)
+    {
+        var (start, end) = (0, text.Length);
+        foreach (var block in path)
+        {
+            if (FindBlock(text, start, end, block) is not { } range) return null;
+            (start, end) = range;
+        }
+        return text[start..end];
+    }
+
+    /// <summary>Non-blank lines of a block body, trimmed: compares blocks regardless of indentation and line endings.</summary>
+    public static List<string> NormalizedLines(string body) =>
+        body.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).ToList();
+
     /// <summary>
     /// Returns (bodyStart, bodyEnd): bodyStart = index right after the opening '{',
     /// bodyEnd = index of the matching '}'. Only considers blocks at nesting depth 0.
     /// </summary>
-    internal static (int, int)? FindTopLevelBlock(string text, string block)
+    internal static (int, int)? FindTopLevelBlock(string text, string block) => FindBlock(text, 0, text.Length, block);
+
+    /// <summary>Same as <see cref="FindTopLevelBlock"/>, restricted to text[start..end] (a block body).</summary>
+    private static (int, int)? FindBlock(string text, int start, int end, string block)
     {
         var depth = 0;
         var inString = false;
         var lineStart = true;
-        for (var i = 0; i < text.Length; i++)
+        for (var i = start; i < end; i++)
         {
             var c = text[i];
             if (inString)
@@ -85,8 +104,8 @@ public static class BlkEditor
                 while (j < text.Length && (text[j] == ' ' || text[j] == '\t')) j++;
                 if (j < text.Length && text[j] == '{')
                 {
-                    var end = FindMatchingBrace(text, j);
-                    if (end >= 0) return (j + 1, end);
+                    var close = FindMatchingBrace(text, j);
+                    if (close >= 0) return (j + 1, close);
                 }
             }
             lineStart = false;

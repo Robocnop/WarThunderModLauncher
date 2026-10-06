@@ -45,7 +45,20 @@ public abstract class ModInstaller(ModItem item)
     public virtual Task RepairAsync(InstallContext ctx, string availableVersion, CancellationToken ct) =>
         InstallAsync(ctx, availableVersion, ct);
 
+    /// <summary>
+    /// Recognises a copy installed without the launcher and records it in the state, so status, update and
+    /// uninstall then work as usual. Only called while the state has no entry for the item.
+    /// </summary>
+    public virtual Task<bool> TryAdoptAsync(InstallContext ctx, string availableVersion, CancellationToken ct) =>
+        Task.FromResult(false);
+
     public InstalledItem? Installed(InstallContext ctx) => ctx.State.Items.GetValueOrDefault(Item.Id);
+
+    protected void Adopt(InstallContext ctx, string version, List<string> files, string? location = null)
+    {
+        ctx.State.Items[Item.Id] = new InstalledItem { Version = version, Files = files, Adopted = true, Location = location };
+        ctx.Save();
+    }
 
     public static ModInstaller Create(ModItem item) => item.Type switch
     {
@@ -144,6 +157,22 @@ public sealed class SoundModInstaller(ModItem item) : ModInstaller(item)
         return inst.Version == availableVersion ? ModStatus.Installed : ModStatus.UpdateAvailable;
     }
 
+    public override Task<bool> TryAdoptAsync(InstallContext ctx, string availableVersion, CancellationToken ct)
+    {
+        var dir = ModDir(ctx.GamePath);
+        if (Item.Files is not { Count: > 0 } expected || !Directory.Exists(dir)) return Task.FromResult(false);
+
+        var present = expected.Where(f => File.Exists(Path.Combine(dir, f.Key))).ToList();
+        if (present.Count == 0) return Task.FromResult(false);
+
+        // Every bank at the expected size: this exact build. Anything else is another build (or another sound mod
+        // reusing the same FMOD bank names): adopted with an unknown version so the card offers the update.
+        var exact = present.Count == expected.Count
+                    && present.All(f => new FileInfo(Path.Combine(dir, f.Key)).Length == f.Value);
+        Adopt(ctx, exact ? availableVersion : "", present.Select(f => $"sound/mod/{f.Key}").ToList());
+        return Task.FromResult(true);
+    }
+
     public override async Task InstallAsync(InstallContext ctx, string availableVersion, CancellationToken ct)
     {
         var zip = await DownloadToCacheAsync(ctx, Item.Url!, Item.FileName ?? $"{Item.Id}.zip", Item.Sha256, ct);
@@ -205,13 +234,48 @@ public sealed class ControlsPresetInstaller(ModItem item) : ModInstaller(item)
 {
     public static string PresetDir(string game) => Path.Combine(game, "ModLauncher", "controls");
     public string PresetPath(string game) => Path.Combine(PresetDir(game), Item.FileName ?? $"{Item.Id}.blk");
+    private string CachedPath => Path.Combine(AppPaths.Cache, Item.FileName ?? $"{Item.Id}.blk");
 
     public override ModStatus GetStatus(InstallContext ctx, string availableVersion)
     {
         var inst = Installed(ctx);
         if (inst is null) return ModStatus.NotInstalled;
-        if (!File.Exists(PresetPath(ctx.GamePath))) return ModStatus.NeedsRepair;
+        // Files is empty when adopted from the game profile but the game folder was not writable.
+        if (inst.Files.Count > 0 && !File.Exists(PresetPath(ctx.GamePath))) return ModStatus.NeedsRepair;
         return inst.Version == availableVersion ? ModStatus.Installed : ModStatus.UpdateAvailable;
+    }
+
+    /// <summary>True when the preset's bindings are the active controls of a War Thunder profile (imported in game).</summary>
+    public bool IsAppliedInGame(string game)
+    {
+        var source = File.Exists(PresetPath(game)) ? PresetPath(game) : CachedPath;
+        try { return File.Exists(source) && ControlsDetector.IsAppliedInAnyProfile(File.ReadAllText(source)); }
+        catch (IOException) { return false; }
+    }
+
+    public override async Task<bool> TryAdoptAsync(InstallContext ctx, string availableVersion, CancellationToken ct)
+    {
+        // The preset is tiny: fetch it (verified) to compare with what the player has.
+        try { await Downloader.DownloadAsync(ctx.Http, Item.Url!, CachedPath, Item.Sha256, null, ct); }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception) { return false; } // offline: try again next launch
+
+        var target = PresetPath(ctx.GamePath);
+        var dropped = File.Exists(target)
+                      && (await File.ReadAllBytesAsync(target, ct)).SequenceEqual(await File.ReadAllBytesAsync(CachedPath, ct));
+        if (!dropped && !ControlsDetector.IsAppliedInAnyProfile(await File.ReadAllTextAsync(CachedPath, ct))) return false;
+
+        var files = new List<string>();
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            if (!dropped) File.Copy(CachedPath, target, overwrite: true);
+            files.Add(Path.GetRelativePath(ctx.GamePath, target).Replace('\\', '/'));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* applied in game is what matters */ }
+
+        Adopt(ctx, availableVersion, files);
+        return true;
     }
 
     public override async Task InstallAsync(InstallContext ctx, string availableVersion, CancellationToken ct)
@@ -245,7 +309,9 @@ public sealed class GitHubToolInstaller(ModItem item) : ModInstaller(item)
     private string? _assetName;
 
     public string ToolDir => Path.Combine(AppPaths.Tools, Item.Id);
-    public string ExePath => Path.Combine(ToolDir, Item.Exe ?? "");
+
+    /// <summary>The launcher's own copy, or the folder of a copy adopted from elsewhere.</summary>
+    public string ExePath(InstallContext ctx) => Path.Combine(Installed(ctx)?.Location ?? ToolDir, Item.Exe ?? "");
 
     public override async Task<string> ResolveAvailableVersionAsync(InstallContext ctx, CancellationToken ct)
     {
@@ -277,9 +343,35 @@ public sealed class GitHubToolInstaller(ModItem item) : ModInstaller(item)
     {
         var inst = Installed(ctx);
         if (inst is null) return ModStatus.NotInstalled;
-        if (!File.Exists(ExePath)) return ModStatus.NeedsRepair;
-        return availableVersion.Length == 0 || inst.Version == availableVersion ? ModStatus.Installed : ModStatus.UpdateAvailable;
+        if (!File.Exists(ExePath(ctx))) return ModStatus.NeedsRepair;
+        return availableVersion.Length == 0 || Versions.Same(inst.Version, availableVersion) ? ModStatus.Installed : ModStatus.UpdateAvailable;
     }
+
+    public override Task<bool> TryAdoptAsync(InstallContext ctx, string availableVersion, CancellationToken ct) => Task.Run(() =>
+    {
+        if (string.IsNullOrEmpty(Item.Exe)) return false;
+
+        // The launcher's own folder survived but its state did not (state.json deleted...).
+        if (File.Exists(Path.Combine(ToolDir, Item.Exe)))
+        {
+            var files = Directory.EnumerateFiles(ToolDir, "*", SearchOption.AllDirectories)
+                .Select(f => Path.GetRelativePath(ToolDir, f).Replace('\\', '/')).ToList();
+            Adopt(ctx, "", files);
+            return true;
+        }
+
+        // A copy the player unzipped themselves: prefer the newest one, judged by its folder name.
+        var found = ExternalToolLocator.FindToolDirs(Item.Exe, ExternalToolLocator.SearchRoots())
+            .Where(d => !ctx.State.IgnoredPaths.Contains(d, StringComparer.OrdinalIgnoreCase))
+            .Select(d => (Dir: d, Version: ExternalToolLocator.VersionFromFolderName(d)))
+            .OrderByDescending(x => Versions.Parse(x.Version))
+            .FirstOrDefault();
+        if (found.Dir is null) return false;
+
+        // Files stays empty: the launcher never deletes a folder it did not create.
+        Adopt(ctx, found.Version ?? "", [], found.Dir);
+        return true;
+    }, ct);
 
     public override async Task InstallAsync(InstallContext ctx, string availableVersion, CancellationToken ct)
     {
@@ -291,8 +383,11 @@ public sealed class GitHubToolInstaller(ModItem item) : ModInstaller(item)
 
         var zip = await DownloadToCacheAsync(ctx, _assetUrl, _assetName!, sha256: null, ct);
 
+        // An adopted copy elsewhere is left alone: the launcher now manages its own copy.
+        if (Installed(ctx)?.Location is { } external) ctx.Log(Loc.Format("Msg.ExternalLeft", DisplayName, external));
+
         // Extract over the existing folder: the tool keeps user output (e.g. generated sights) next to its exe.
-        var previous = Installed(ctx)?.Files ?? [];
+        var previous = Installed(ctx) is { Location: null } own ? own.Files : [];
         var msg = Loc.Format("Msg.Extracting", DisplayName);
         ctx.Log(msg);
         var files = await Task.Run(() => Extract(zip, ToolDir, ToolDir, _ => true, flatten: false,
@@ -306,15 +401,27 @@ public sealed class GitHubToolInstaller(ModItem item) : ModInstaller(item)
 
     public override Task UninstallAsync(InstallContext ctx, CancellationToken ct)
     {
-        if (Installed(ctx) is { } inst) DeleteFiles(ToolDir, inst.Files);
-        DeleteEmptyDirs(ToolDir);
+        if (Installed(ctx)?.Location is { } external)
+        {
+            // Not ours to delete: forget it, and don't adopt it again on next launch.
+            ctx.State.IgnoredPaths.Add(external);
+            ctx.Log(Loc.Format("Msg.ExternalLeft", DisplayName, external));
+        }
+        else
+        {
+            if (Installed(ctx) is { } inst) DeleteFiles(ToolDir, inst.Files);
+            DeleteEmptyDirs(ToolDir);
+        }
         ctx.State.Items.Remove(Item.Id);
         ctx.Save();
         return Task.CompletedTask;
     }
 
-    public void Launch() =>
-        Process.Start(new ProcessStartInfo(ExePath) { WorkingDirectory = ToolDir, UseShellExecute = true });
+    public void Launch(InstallContext ctx)
+    {
+        var exe = ExePath(ctx);
+        Process.Start(new ProcessStartInfo(exe) { WorkingDirectory = Path.GetDirectoryName(exe)!, UseShellExecute = true });
+    }
 }
 
 /// <summary>Reads/writes the sound{ enable_mod } switch of &lt;game&gt;\config.blk, keeping a one-time backup.</summary>

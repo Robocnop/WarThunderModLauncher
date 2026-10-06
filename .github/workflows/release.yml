@@ -13,22 +13,53 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "8.0.x"
+
+      - name: Version
+        shell: pwsh
+        run: |
+          # A v* tag sets the version (v0.3.0-beta.1 -> 0.3.0-beta.1); other builds use the csproj one.
+          if ("${{ github.ref }}".StartsWith("refs/tags/v")) { $v = "${{ github.ref_name }}".Substring(1) }
+          else { $v = (dotnet msbuild src/WTModLauncher -getProperty:Version).Trim() }
+          $n = ($v -split '[-+]')[0]
+          "APP_VERSION=$v" >> $env:GITHUB_ENV
+          "APP_NUMERIC=$n" >> $env:GITHUB_ENV
+          Write-Host "Version $v ($n)"
 
       - name: Test
         run: dotnet test WTModLauncher.slnx -c Release
 
       - name: Publish single-file exe
-        run: dotnet publish src/WTModLauncher -c Release -o publish
+        run: dotnet publish src/WTModLauncher -c Release -o publish -p:Version=${{ env.APP_VERSION }} -p:AssemblyVersion=${{ env.APP_NUMERIC }} -p:FileVersion=${{ env.APP_NUMERIC }}
 
-      - uses: actions/upload-artifact@v4
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          & $iscc installer\WTModLauncher.iss "/DAppVersion=$env:APP_VERSION" "/DNumericVersion=$env:APP_NUMERIC"
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed" }
+
+      - name: Checksums
+        shell: pwsh
+        run: |
+          # Read by the launcher's self-updater when GitHub's asset digest is unavailable.
+          Get-ChildItem publish -Filter *.exe | Sort-Object Name | ForEach-Object {
+            "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)"
+          } | Set-Content publish/SHA256SUMS.txt -Encoding ascii
+          Get-Content publish/SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v7
         with:
-          name: WTModLauncher
-          path: publish/WTModLauncher.exe
+          name: WTModLauncher-${{ env.APP_VERSION }}
+          path: |
+            publish/WTModLauncher.exe
+            publish/WTModLauncher-Setup-*.exe
+            publish/SHA256SUMS.txt
 
       - name: Attach to GitHub release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -38,5 +69,11 @@ jobs:
         run: |
           $tag = "${{ github.ref_name }}"
           gh release view $tag 2>$null
-          if ($LASTEXITCODE -ne 0) { gh release create $tag --title "WT Mod Launcher $tag" --generate-notes }
-          gh release upload $tag publish/WTModLauncher.exe --clobber
+          if ($LASTEXITCODE -ne 0) {
+            # Pre-1.0 and suffixed tags (v1.2.0-beta.1) ship as pre-releases.
+            $pre = if ($tag -like "v0.*" -or $tag.Contains("-")) { @("--prerelease") } else { @() }
+            gh release create $tag --title "WT Mod Launcher $tag" --generate-notes @pre
+            if ($LASTEXITCODE -ne 0) { throw "gh release create failed" }
+          }
+          gh release upload $tag publish/WTModLauncher.exe "publish/WTModLauncher-Setup-$env:APP_VERSION.exe" publish/SHA256SUMS.txt --clobber
+          if ($LASTEXITCODE -ne 0) { throw "gh release upload failed" }

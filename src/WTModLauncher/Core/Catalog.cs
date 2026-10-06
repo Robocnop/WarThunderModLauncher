@@ -30,6 +30,8 @@ public sealed class ModItem
     public string? FileName { get; set; }
     public string? Sha256 { get; set; }
     public long? Size { get; set; }
+    /// <summary>File name → size of what the item installs (soundmod banks): recognises a copy installed without the launcher.</summary>
+    public Dictionary<string, long>? Files { get; set; }
 
     // github-tool items: resolved at runtime from the repo's latest release
     public string? Repo { get; set; }

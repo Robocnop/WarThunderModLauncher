@@ -24,6 +24,9 @@ public sealed partial class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(GameStatusText));
             OnPropertyChanged(nameof(PrimaryButtonText));
             OnPropertyChanged(nameof(Language));
+            OnPropertyChanged(nameof(UpdateText));
+            OnPropertyChanged(nameof(UpdateStatusText));
+            OnPropertyChanged(nameof(InstallKindText));
         };
     }
 
@@ -81,7 +84,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PrimaryButtonText))]
-    [NotifyCanExecuteChangedFor(nameof(InstallSelectedCommand))]
+    [NotifyCanExecuteChangedFor(nameof(InstallSelectedCommand), nameof(UpdateNowCommand))]
     private bool _isBusy;
 
     [ObservableProperty]
@@ -122,6 +125,7 @@ public sealed partial class MainViewModel : ObservableObject
         Log(GameStatusText);
         LoadSightsProfiles();
         await LoadCatalogAsync();
+        await CheckForUpdateAsync(manual: false);
     }
 
     private void LoadSightsProfiles()
@@ -150,6 +154,7 @@ public sealed partial class MainViewModel : ObservableObject
             var ctx = CreateContext();
             await Task.WhenAll(Items.Select(async vm =>
                 vm.AvailableVersion = await vm.Installer.ResolveAvailableVersionAsync(ctx, CancellationToken.None)));
+            await DetectExistingAsync(ctx);
         }
         catch (Exception ex)
         {
@@ -163,6 +168,26 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>Adopts mods the player installed without the launcher (or before its state was lost).</summary>
+    private async Task DetectExistingAsync(InstallContext ctx)
+    {
+        foreach (var vm in Items)
+        {
+            if (vm.Installer.Installed(ctx) is not null || !(IsGameFound || vm.IsTool)) continue;
+            try
+            {
+                if (!await vm.Installer.TryAdoptAsync(ctx, vm.AvailableVersion, CancellationToken.None)) continue;
+                Log(vm.Installer.Installed(ctx)?.Location is { } where
+                    ? Loc.Format("Msg.DetectedAt", vm.Title, where)
+                    : Loc.Format("Msg.Detected", vm.Title));
+            }
+            catch (Exception ex)
+            {
+                Log(Loc.Format("Msg.Failed", vm.Title, ex.Message));
+            }
+        }
+    }
+
     private void RefreshStatuses(bool selectPending = false)
     {
         var ctx = CreateContext();
@@ -170,6 +195,8 @@ public sealed partial class MainViewModel : ObservableObject
         {
             // Tools live in the launcher's own folder; everything else needs a known game folder.
             vm.Status = IsGameFound || vm.IsTool ? SafeStatus(vm, ctx) : ModStatus.Unknown;
+            if (vm.Installer is ControlsPresetInstaller preset)
+                vm.IsApplied = IsGameFound && preset.IsAppliedInGame(GamePath!);
             if (selectPending) vm.IsSelected = vm.NeedsAction;
         }
         NotifySelectionChanged();
@@ -341,7 +368,7 @@ public sealed partial class MainViewModel : ObservableObject
     private void LaunchTool(ModItemViewModel vm)
     {
         if (vm.Installer is not GitHubToolInstaller tool) return;
-        try { tool.Launch(); }
+        try { tool.Launch(CreateContext()); }
         catch (Exception ex) { Log(Loc.Format("Msg.Failed", vm.Title, ex.Message)); }
     }
 
@@ -403,12 +430,13 @@ public sealed partial class MainViewModel : ObservableObject
         else SetGamePath(found);
     }
 
-    private void SetGamePath(string path)
+    private async void SetGamePath(string path)
     {
         GamePath = path;
         _state.GamePath = path;
         StateStore.Save(_state);
         Log(GameStatusText);
+        await DetectExistingAsync(CreateContext());
         RefreshStatuses(selectPending: true);
     }
 
@@ -426,6 +454,124 @@ public sealed partial class MainViewModel : ObservableObject
     {
         var args = select && File.Exists(path) ? $"/select,\"{path}\"" : $"\"{path}\"";
         Process.Start(new ProcessStartInfo("explorer.exe", args) { UseShellExecute = true });
+    }
+
+    // ---------- launcher self-update ----------
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasUpdate), nameof(UpdateText), nameof(UpdateStatusText))]
+    [NotifyCanExecuteChangedFor(nameof(UpdateNowCommand))]
+    private AppRelease? _availableUpdate;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UpdateStatusText))]
+    private string? _updateError;
+
+    private bool _checkedForUpdate;
+    private bool _prereleaseChannel;
+
+    public bool HasUpdate => AvailableUpdate is not null;
+
+    public string UpdateText => AvailableUpdate is { } r ? Loc.Format("Update.Available", r.Tag) : "";
+
+    public string UpdateStatusText =>
+        UpdateError is { } err ? Loc.Format("Update.CheckFailed", err)
+        : AvailableUpdate is { } r ? Loc.Format("Update.Available", r.Tag)
+        : _checkedForUpdate ? Loc.Format("Update.UpToDate", AppVersion)
+        : "";
+
+    public string InstallKindText =>
+        Loc.Format(AppUpdater.IsInstalled ? "Settings.VersionInstalled" : "Settings.VersionPortable", AppVersion);
+
+    /// <summary>Settings checkbox; until the player touches it, follows the channel of the running build.</summary>
+    public bool IncludePrereleases
+    {
+        get => _state.IncludePrereleases ?? _prereleaseChannel;
+        set
+        {
+            _state.IncludePrereleases = value;
+            StateStore.Save(_state);
+            OnPropertyChanged();
+            _ = CheckForUpdateAsync(manual: true);
+        }
+    }
+
+    [RelayCommand]
+    private Task CheckUpdates() => CheckForUpdateAsync(manual: true);
+
+    private async Task CheckForUpdateAsync(bool manual)
+    {
+        try
+        {
+            var check = await AppUpdater.CheckAsync(_http, _state.IncludePrereleases, CancellationToken.None);
+            _prereleaseChannel = check.Prereleases;
+            OnPropertyChanged(nameof(IncludePrereleases));
+            _checkedForUpdate = true;
+            UpdateError = null;
+            AvailableUpdate = check.Release;
+            OnPropertyChanged(nameof(UpdateStatusText));
+            if (check.Release is { } r) Log(Loc.Format("Update.Available", r.Tag));
+            else if (manual) Log(Loc.Format("Update.UpToDate", AppVersion));
+        }
+        catch (Exception ex)
+        {
+            // Offline or rate-limited: only worth a word when the player asked.
+            if (!manual) return;
+            UpdateError = ex.Message;
+            Log(Loc.Format("Update.CheckFailed", ex.Message));
+        }
+    }
+
+    private bool CanUpdateNow() => AvailableUpdate is not null && !IsBusy;
+
+    [RelayCommand(CanExecute = nameof(CanUpdateNow))]
+    private async Task UpdateNow()
+    {
+        if (AvailableUpdate is not { } release || IsBusy) return;
+        IsBusy = true;
+        Progress = 0;
+        _cts = new CancellationTokenSource();
+        try
+        {
+            ProgressMessage = Loc.Format("Update.Downloading", release.Tag);
+            Log(ProgressMessage);
+            var file = await AppUpdater.DownloadAsync(_http, release, new Progress<TransferProgress>(p =>
+            {
+                ProgressIndeterminate = p.Total is not > 0;
+                if (p.Total is > 0) Progress = (double)p.Done / p.Total.Value;
+                ProgressDetail = $"{p.Done / 1048576.0:0.0} MB";
+            }), _cts.Token);
+
+            Log(Loc.Get("Update.Restarting"));
+            AppUpdater.Apply(file);
+            Application.Current.Shutdown();
+        }
+        catch (OperationCanceledException)
+        {
+            Log(Loc.Get("Msg.Cancelled"));
+        }
+        catch (Exception ex)
+        {
+            // e.g. a portable exe in a write-protected folder: hand over to the release page.
+            Log(Loc.Format("Update.Failed", ex.Message));
+            OpenUrl(release.HtmlUrl);
+        }
+        finally
+        {
+            _cts?.Dispose();
+            _cts = null;
+            IsBusy = false;
+            ProgressIndeterminate = false;
+            ProgressMessage = "";
+            ProgressDetail = "";
+            Progress = 0;
+        }
+    }
+
+    [RelayCommand]
+    private void OpenReleaseNotes()
+    {
+        if (AvailableUpdate is { } r) OpenUrl(r.HtmlUrl);
     }
 
     // ---------- log ----------
