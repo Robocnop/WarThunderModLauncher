@@ -47,8 +47,6 @@ WT Mod Launcher lets players pick the mods they want with checkboxes and takes c
 
 Uninstalling the launcher leaves your mods in place and keeps its data in `%LOCALAPPDATA%\WTModLauncher`; remove mods from the launcher first if you want them gone.
 
-> **Note:** current builds are **pre-releases** (`v0.x`).
-
 ### Releases
 
 | Release | Contents |
@@ -73,7 +71,7 @@ cd WarThunderModLauncher
 dotnet test WTModLauncher.slnx                              # unit tests
 dotnet run --project src/WTModLauncher                      # run in debug
 dotnet publish src/WTModLauncher -c Release -o publish      # single-file exe in ./publish
-iscc installer\WTModLauncher.iss /DAppVersion=0.2.0          # installer in ./publish (Inno Setup 6)
+iscc installer\WTModLauncher.iss /DAppVersion=1.0.0          # installer in ./publish (Inno Setup 6)
 ```
 
 ### Project layout
@@ -95,8 +93,8 @@ tools/publish-content.ps1  publishes a content-* release
 **App release** — push a tag; CI tests, builds and attaches the installer, the portable exe and `SHA256SUMS.txt`. The tag sets the version (`v0.3.0-beta.1` works too); `v0.x` and suffixed tags are published as pre-releases:
 
 ```powershell
-git tag v0.2.0
-git push origin v0.2.0
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
 Running launchers see the new version at their next start.

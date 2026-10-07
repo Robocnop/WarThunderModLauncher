@@ -22,6 +22,9 @@ Today the preset is dropped next to the game and imported by hand (*Controls →
 
 ## Done
 
+### v1.0.0
+- First stable release (same features as v0.2.0). Users on the stable channel now receive updates without opting in to pre-releases.
+
 ### v0.2.0
 - **Windows installer (Inno Setup)** — `WTModLauncher-Setup-x.y.z.exe`: per-user install in `%LOCALAPPDATA%\Programs\WTModLauncher` (no admin rights), Start menu + optional desktop shortcut, *Apps & features* entry, clean uninstaller. Built by CI and attached to every `v*` release next to the portable exe and `SHA256SUMS.txt`.
 - **Detection of mods installed outside the launcher** — adopted into `state.json` so update and uninstall work as usual:

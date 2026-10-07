@@ -1,7 +1,7 @@
 ; Inno Setup 6 script for WT Mod Launcher: per-user install, no admin rights needed.
 ;
 ; Build (from the repo root, after `dotnet publish src/WTModLauncher -c Release -o publish`):
-;   iscc installer\WTModLauncher.iss /DAppVersion=0.2.0
+;   iscc installer\WTModLauncher.iss /DAppVersion=1.0.0
 ; Output: publish\WTModLauncher-Setup-0.2.0.exe
 ;
 ; The launcher updates itself by running this setup with /SILENT /SUPPRESSMSGBOXES /NORESTART /RELAUNCH=1.
